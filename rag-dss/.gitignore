@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+
+# Secrets
+.env
+*.pem
+*.key
+
+# ChromaDB data
+chroma_data/
+/data/
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Models cache (sentence-transformers)
+~/.cache/torch/
+~/.cache/huggingface/
+
+# Logs
+*.log
+logs/

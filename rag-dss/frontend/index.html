@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DSS — Decision Support System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ── Design tokens ─────────────────────────────────────────────── */
+  :root {
+    --bg:         #0a0a0b;
+    --surface:    #111114;
+    --border:     #1e1e24;
+    --border-lit: #2e2e3a;
+    --text:       #e8e8f0;
+    --muted:      #5a5a72;
+    --accent:     #6c63ff;
+    --accent-dim: #3d3880;
+    --accent-glow:#6c63ff44;
+    --green:      #39d98a;
+    --amber:      #f5a623;
+    --red:        #ff4d6d;
+    --radius:     6px;
+    --mono:       'JetBrains Mono', monospace;
+    --sans:       'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+
+  /* ── Background grid ───────────────────────────────────────────── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Layout ────────────────────────────────────────────────────── */
+  .shell {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: 56px 1fr;
+    min-height: 100vh;
+  }
+
+  /* ── Top bar ───────────────────────────────────────────────────── */
+  .topbar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-mark {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 4px;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    font-weight: 800;
+    color: #fff;
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+  }
+  .status-label { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+  .api-base-input {
+    background: var(--bg);
+    border: 1px solid var(--border-lit);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: var(--radius);
+    width: 220px;
+  }
+  .api-base-input:focus { outline: none; border-color: var(--accent); }
+
+  /* ── Sidebar ───────────────────────────────────────────────────── */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .nav-section {
+    padding: 6px 20px 4px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 12px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    color: var(--muted);
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .nav-item:hover { color: var(--text); background: #ffffff06; }
+  .nav-item.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: var(--accent-glow);
+  }
+  .nav-icon { font-size: 15px; width: 18px; text-align: center; }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  /* ── Main content ──────────────────────────────────────────────── */
+  .main {
+    overflow-y: auto;
+    padding: 32px 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  /* Pages */
+  .page { display: none; flex-direction: column; gap: 24px; }
+  .page.active { display: flex; animation: fadein 0.2s ease; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* Page header */
+  .page-header { border-bottom: 1px solid var(--border); padding-bottom: 18px; }
+  .page-title { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+  .page-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  /* ── Cards ─────────────────────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  /* Stat cards row */
+  .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+  }
+  .stat-label { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+  .stat-value { font-size: 32px; font-weight: 800; margin-top: 6px; line-height: 1; }
+  .stat-delta { font-size: 11px; color: var(--muted); margin-top: 6px; font-family: var(--mono); }
+  .stat-value.green { color: var(--green); }
+  .stat-value.accent { color: var(--accent); }
+  .stat-value.amber  { color: var(--amber); }
+
+  /* ── Query interface ───────────────────────────────────────────── */
+  .query-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid var(--border-lit);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .query-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+
+  .query-textarea {
+    background: var(--surface);
+    border: none;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    padding: 18px 20px;
+    resize: none;
+    min-height: 90px;
+    line-height: 1.6;
+  }
+  .query-textarea:focus { outline: none; }
+  .query-textarea::placeholder { color: var(--muted); }
+
+  .query-toolbar {
+    background: #0d0d10;
+    border-top: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .query-options { display: flex; gap: 10px; align-items: center; }
+
+  .option-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+  .option-group select, .option-group input[type=number] {
+    background: var(--bg);
+    border: 1px solid var(--border-lit);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    width: 60px;
+  }
+  .option-group select { width: auto; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 18px;
+    border-radius: var(--radius);
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: #7b73ff; transform: translateY(-1px); }
+  .btn-primary:active { transform: none; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border-lit);
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--border-lit); background: #ffffff08; }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--red);
+    border: 1px solid #ff4d6d33;
+    font-size: 11px;
+    padding: 5px 12px;
+  }
+  .btn-danger:hover { background: #ff4d6d15; }
+
+  /* ── Answer panel ──────────────────────────────────────────────── */
+  #answer-panel { display: none; }
+  #answer-panel.visible { display: flex; flex-direction: column; gap: 16px; animation: fadein 0.25s ease; }
+
+  .answer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .answer-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--muted);
+  }
+  .meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: var(--bg);
+    border: 1px solid var(--border-lit);
+    font-size: 10px;
+  }
+  .meta-chip.green { color: var(--green); border-color: #39d98a33; }
+  .meta-chip.accent { color: var(--accent); border-color: #6c63ff33; }
+
+  .answer-body {
+    font-size: 14.5px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* Sources */
+  .sources-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+  .source-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    cursor: default;
+    transition: border-color 0.15s;
+  }
+  .source-card:hover { border-color: var(--accent-dim); }
+  .source-title { font-size: 12px; font-weight: 700; color: var(--text); }
+  .source-score {
+    display: inline-block;
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--accent);
+    margin-top: 4px;
+  }
+  .source-excerpt {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Follow-ups */
+  .followup-list { display: flex; flex-direction: column; gap: 6px; }
+  .followup-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .followup-item:hover { border-color: var(--accent-dim); color: var(--text); background: var(--accent-glow); }
+  .followup-arrow { color: var(--accent); flex-shrink: 0; margin-top: 1px; }
+
+  /* ── Loading spinner ───────────────────────────────────────────── */
+  .loader {
+    display: none;
+    align-items: center;
+    gap: 14px;
+    padding: 20px 0;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .loader.visible { display: flex; }
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border-lit);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Documents page ────────────────────────────────────────────── */
+  .ingest-form { display: flex; flex-direction: column; gap: 14px; }
+
+  .field-group { display: flex; flex-direction: column; gap: 6px; }
+  .field-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+
+  .field-input, .field-textarea, .field-select {
+    background: var(--bg);
+    border: 1px solid var(--border-lit);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    padding: 9px 12px;
+    border-radius: var(--radius);
+    transition: border-color 0.15s;
+  }
+  .field-input:focus, .field-textarea:focus { outline: none; border-color: var(--accent); }
+  .field-textarea { resize: vertical; min-height: 130px; line-height: 1.6; font-family: var(--mono); font-size: 12px; }
+
+  .ingest-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* Document list */
+  .doc-list { display: flex; flex-direction: column; gap: 8px; }
+  .doc-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: border-color 0.15s;
+  }
+  .doc-item:hover { border-color: var(--border-lit); }
+  .doc-icon { font-size: 18px; flex-shrink: 0; }
+  .doc-info { flex: 1; min-width: 0; }
+  .doc-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .doc-meta { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+  .doc-badge {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .badge-indexed { background: #39d98a22; color: var(--green); }
+  .badge-processing { background: #f5a62322; color: var(--amber); }
+  .badge-failed { background: #ff4d6d22; color: var(--red); }
+
+  /* Drop zone */
+  .drop-zone {
+    border: 2px dashed var(--border-lit);
+    border-radius: 8px;
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+    color: var(--text);
+  }
+  .drop-zone-icon { font-size: 28px; margin-bottom: 10px; }
+  #file-input { display: none; }
+
+  /* ── Notifications ─────────────────────────────────────────────── */
+  #toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 9999;
+  }
+  .toast {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    min-width: 240px;
+    animation: slideup 0.25s ease, fadeout 0.3s ease 2.7s forwards;
+    pointer-events: none;
+  }
+  .toast-success { background: #39d98a22; border: 1px solid #39d98a55; color: var(--green); }
+  .toast-error   { background: #ff4d6d22; border: 1px solid #ff4d6d55; color: var(--red); }
+  .toast-info    { background: var(--accent-glow); border: 1px solid #6c63ff55; color: var(--accent); }
+  @keyframes slideup { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  @keyframes fadeout { to { opacity: 0; transform: translateY(-4px); } }
+
+  /* ── Scrollbar ─────────────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-lit); border-radius: 3px; }
+
+  /* ── Confidence bar ────────────────────────────────────────────── */
+  .conf-bar-wrap { display: flex; align-items: center; gap: 10px; }
+  .conf-bar-track {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .conf-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+  .conf-label { font-size: 10px; font-family: var(--mono); color: var(--muted); width: 36px; text-align: right; }
+
+  /* ── Session panel ─────────────────────────────────────────────── */
+  .session-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--muted);
+  }
+  .session-id { color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; }
+
+  /* ── History list ──────────────────────────────────────────────── */
+  .history-list { display: flex; flex-direction: column; gap: 12px; }
+  .history-turn { display: flex; gap: 12px; }
+  .history-turn.user .bubble {
+    background: var(--accent-glow);
+    border-color: var(--accent-dim);
+    margin-left: auto;
+    text-align: right;
+  }
+  .bubble {
+    max-width: 80%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+  .bubble-role { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="logo">
+      <div class="logo-mark">DSS</div>
+      Decision Support System
+    </div>
+    <div class="topbar-right">
+      <input class="api-base-input" id="apiBase" value="http://localhost:8000" placeholder="API base URL" />
+      <span class="status-dot" id="statusDot"></span>
+      <span class="status-label" id="statusLabel">connecting…</span>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="nav-section">Core</div>
+    <div class="nav-item active" data-page="query">
+      <span class="nav-icon">⚡</span> Query
+    </div>
+    <div class="nav-item" data-page="documents">
+      <span class="nav-icon">📄</span> Documents
+    </div>
+
+    <div class="nav-section">Insights</div>
+    <div class="nav-item" data-page="sessions">
+      <span class="nav-icon">💬</span> Sessions
+    </div>
+    <div class="nav-item" data-page="diagnostics">
+      <span class="nav-icon">🔬</span> Diagnostics
+    </div>
+
+    <div class="sidebar-footer" id="sidebarVersion">v1.0.0 · embedded</div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ═══════════════════════════════ QUERY PAGE ══════════════════════════ -->
+    <div class="page active" id="page-query">
+
+      <div class="page-header">
+        <div class="page-title">Knowledge Query</div>
+        <div class="page-sub">Ask questions grounded in indexed documents — cited answers, zero hallucination.</div>
+      </div>
+
+      <!-- Session bar -->
+      <div class="session-bar" id="sessionBar">
+        <span>Session:</span>
+        <span class="session-id" id="sessionIdDisplay">none</span>
+        <button class="btn btn-ghost" style="margin-left:auto;font-size:11px;padding:4px 10px" onclick="createSession()">New session</button>
+        <button class="btn btn-danger" id="clearSessionBtn" onclick="clearSession()" style="display:none">Clear</button>
+      </div>
+
+      <!-- Query input -->
+      <div class="card" style="padding: 0;">
+        <div class="query-box">
+          <textarea class="query-textarea" id="queryInput"
+            placeholder="e.g. What is the remote work expense reimbursement policy?&#10;&#10;Press Ctrl+Enter to submit."
+            rows="4"
+          ></textarea>
+          <div class="query-toolbar">
+            <div class="query-options">
+              <div class="option-group">
+                Top-K
+                <input type="number" id="topK" value="5" min="1" max="20" />
+              </div>
+              <div class="option-group">
+                Threshold
+                <input type="number" id="threshold" value="0.35" min="0" max="1" step="0.05" style="width:68px" />
+              </div>
+              <div class="option-group">
+                <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+                  <input type="checkbox" id="includeSources" checked /> Sources
+                </label>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost" onclick="clearQuery()">Clear</button>
+              <button class="btn btn-primary" id="submitBtn" onclick="submitQuery()">
+                <span>Query</span> <span style="font-size:16px;line-height:1">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loader -->
+      <div class="loader" id="loader">
+        <div class="spinner"></div>
+        <span id="loaderText">Retrieving relevant chunks…</span>
+      </div>
+
+      <!-- Answer panel -->
+      <div id="answer-panel">
+
+        <!-- Meta row -->
+        <div class="answer-header">
+          <div class="answer-meta">
+            <span class="meta-chip accent" id="metaModel">—</span>
+            <span class="meta-chip" id="metaLatency">—</span>
+            <span class="meta-chip" id="metaChunks">—</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:11px;color:var(--muted)">Confidence</span>
+            <div class="conf-bar-wrap" style="width:130px">
+              <div class="conf-bar-track"><div class="conf-bar-fill" id="confBar" style="width:0%"></div></div>
+              <span class="conf-label" id="confLabel">0%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Answer text -->
+        <div class="card">
+          <div class="card-title">Answer</div>
+          <div class="answer-body" id="answerText"></div>
+        </div>
+
+        <!-- Sources -->
+        <div id="sourcesSection">
+          <div class="card-title" style="margin-bottom:10px">Sources</div>
+          <div class="sources-grid" id="sourcesGrid"></div>
+        </div>
+
+        <!-- Follow-ups -->
+        <div id="followupsSection" style="display:none">
+          <div class="card-title" style="margin-bottom:10px">Suggested Follow-ups</div>
+          <div class="followup-list" id="followupList"></div>
+        </div>
+
+        <!-- Feedback -->
+        <div class="card" style="padding:14px 20px">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <span style="font-size:12px;color:var(--muted)">Was this helpful?</span>
+            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;color:var(--green)" onclick="sendFeedback(true)">👍 Yes</button>
+            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;color:var(--red)"   onclick="sendFeedback(false)">👎 No</button>
+            <span style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="feedbackSent"></span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════ DOCUMENTS PAGE ══════════════════════ -->
+    <div class="page" id="page-documents">
+
+      <div class="page-header">
+        <div class="page-title">Knowledge Base</div>
+        <div class="page-sub">Ingest text or upload files to extend the retrieval corpus.</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+
+        <!-- Ingest form -->
+        <div class="card">
+          <div class="card-title">Ingest Text Document</div>
+          <div class="ingest-form">
+            <div class="field-group">
+              <label class="field-label">Title</label>
+              <input class="field-input" id="docTitle" placeholder="Remote Work Policy v3.2" />
+            </div>
+            <div class="ingest-row">
+              <div class="field-group">
+                <label class="field-label">Author</label>
+                <input class="field-input" id="docAuthor" placeholder="HR Department" />
+              </div>
+              <div class="field-group">
+                <label class="field-label">Department</label>
+                <input class="field-input" id="docDepartment" placeholder="Engineering" />
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Tags (comma-separated)</label>
+              <input class="field-input" id="docTags" placeholder="policy, hr, remote-work" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Content</label>
+              <textarea class="field-textarea" id="docContent" placeholder="Paste the full document text here…"></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="ingestDocument()">Ingest Document</button>
+          </div>
+        </div>
+
+        <!-- File upload + doc list -->
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="card">
+            <div class="card-title">Upload File</div>
+            <div class="drop-zone" id="dropZone" onclick="document.getElementById('file-input').click()">
+              <div class="drop-zone-icon">📂</div>
+              <div>Drop a <strong>.txt, .md, .json</strong> file here or click to browse</div>
+              <div style="font-size:11px;margin-top:6px;color:var(--muted)">Max 20 MB</div>
+            </div>
+            <input type="file" id="file-input" accept=".txt,.md,.json,.csv" />
+          </div>
+
+          <div class="card" style="flex:1">
+            <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+              <span>Indexed Documents</span>
+              <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="loadDocuments()">↻ Refresh</button>
+            </div>
+            <div class="doc-list" id="docList">
+              <div style="color:var(--muted);font-size:13px">Loading…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════ SESSIONS PAGE ══════════════════════ -->
+    <div class="page" id="page-sessions">
+      <div class="page-header">
+        <div class="page-title">Sessions</div>
+        <div class="page-sub">Multi-turn conversation history with context continuity.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Active Session History</div>
+        <div id="historyContainer">
+          <div style="color:var(--muted);font-size:13px">No active session. Start a query with a session to see history here.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════ DIAGNOSTICS PAGE ══════════════════ -->
+    <div class="page" id="page-diagnostics">
+      <div class="page-header">
+        <div class="page-title">Diagnostics</div>
+        <div class="page-sub">System health, configuration, and feedback analytics.</div>
+      </div>
+
+      <div class="stat-row" id="diagStats">
+        <div class="stat-card"><div class="stat-label">Total Chunks</div><div class="stat-value accent" id="dChunks">—</div></div>
+        <div class="stat-card"><div class="stat-label">Avg Rating</div><div class="stat-value green" id="dRating">—</div></div>
+        <div class="stat-card"><div class="stat-label">Helpful %</div><div class="stat-value green" id="dHelpful">—</div></div>
+        <div class="stat-card"><div class="stat-label">LLM Provider</div><div class="stat-value" style="font-size:18px" id="dProvider">—</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="card" id="diagConfig">
+          <div class="card-title">Runtime Config</div>
+          <pre style="font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.8;overflow:auto;max-height:280px" id="configPre">Loading…</pre>
+        </div>
+        <div class="card">
+          <div class="card-title">Vector Store</div>
+          <pre style="font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.8" id="vsPre">Loading…</pre>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" style="align-self:flex-start" onclick="loadDiagnostics()">↻ Refresh</button>
+    </div>
+
+  </main>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  State
+// ═══════════════════════════════════════════════════════════════════════════
+let currentSessionId = null;
+let lastQueryId = null;
+let loaderMessages = [
+  'Encoding query into embedding space…',
+  'Searching vector index…',
+  'Applying hybrid BM25 fusion…',
+  'Ranking retrieved chunks…',
+  'Prompting LLM with context…',
+  'Generating grounded answer…',
+];
+let loaderInterval = null;
+
+const $ = id => document.getElementById(id);
+const apiBase = () => $('apiBase').value.replace(/\/$/, '');
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Navigation
+// ═══════════════════════════════════════════════════════════════════════════
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    item.classList.add('active');
+    $('page-' + item.dataset.page).classList.add('active');
+    if (item.dataset.page === 'documents') loadDocuments();
+    if (item.dataset.page === 'diagnostics') loadDiagnostics();
+    if (item.dataset.page === 'sessions') renderHistory();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Health check
+// ═══════════════════════════════════════════════════════════════════════════
+async function checkHealth() {
+  try {
+    const r = await fetch(`${apiBase()}/api/v1/health`, { signal: AbortSignal.timeout(4000) });
+    if (r.ok) {
+      $('statusDot').style.background = 'var(--green)';
+      $('statusDot').style.boxShadow = '0 0 8px var(--green)';
+      $('statusLabel').textContent = 'online';
+      const data = await r.json();
+      $('sidebarVersion').textContent = `v${data.version || '?'} · ready`;
+    } else throw new Error();
+  } catch {
+    $('statusDot').style.background = 'var(--red)';
+    $('statusDot').style.boxShadow = '0 0 8px var(--red)';
+    $('statusLabel').textContent = 'offline';
+  }
+}
+checkHealth();
+setInterval(checkHealth, 30_000);
+
+$('apiBase').addEventListener('change', checkHealth);
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Session management
+// ═══════════════════════════════════════════════════════════════════════════
+async function createSession() {
+  try {
+    const r = await fetch(`${apiBase()}/api/v1/sessions/`, { method: 'POST' });
+    const data = await r.json();
+    currentSessionId = data.session_id;
+    $('sessionIdDisplay').textContent = currentSessionId;
+    $('clearSessionBtn').style.display = 'inline-flex';
+    toast('Session created', 'success');
+    renderHistory();
+  } catch(e) { toast('Failed to create session', 'error'); }
+}
+
+async function clearSession() {
+  if (!currentSessionId) return;
+  try {
+    await fetch(`${apiBase()}/api/v1/sessions/${currentSessionId}`, { method: 'DELETE' });
+  } catch {}
+  currentSessionId = null;
+  $('sessionIdDisplay').textContent = 'none';
+  $('clearSessionBtn').style.display = 'none';
+  renderHistory();
+  toast('Session cleared', 'info');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Query
+// ═══════════════════════════════════════════════════════════════════════════
+$('queryInput').addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'Enter') submitQuery();
+});
+
+async function submitQuery() {
+  const question = $('queryInput').value.trim();
+  if (!question) return;
+
+  // Show loader
+  $('answer-panel').classList.remove('visible');
+  const loader = $('loader');
+  loader.classList.add('visible');
+  $('submitBtn').disabled = true;
+
+  let msgIdx = 0;
+  $('loaderText').textContent = loaderMessages[0];
+  loaderInterval = setInterval(() => {
+    msgIdx = (msgIdx + 1) % loaderMessages.length;
+    $('loaderText').textContent = loaderMessages[msgIdx];
+  }, 1500);
+
+  try {
+    const payload = {
+      question,
+      top_k: parseInt($('topK').value),
+      score_threshold: parseFloat($('threshold').value),
+      include_sources: $('includeSources').checked,
+    };
+    if (currentSessionId) payload.session_id = currentSessionId;
+
+    const r = await fetch(`${apiBase()}/api/v1/query/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    renderAnswer(data);
+    if (currentSessionId) renderHistory();
+    lastQueryId = data.query_id;
+    $('feedbackSent').textContent = '';
+  } catch(e) {
+    toast(`Query failed: ${e.message}`, 'error');
+  } finally {
+    clearInterval(loaderInterval);
+    loader.classList.remove('visible');
+    $('submitBtn').disabled = false;
+  }
+}
+
+function renderAnswer(data) {
+  const panel = $('answer-panel');
+
+  // Meta
+  $('metaModel').textContent = `⚙ ${data.model_used}`;
+  $('metaLatency').textContent = `⏱ ${data.total_latency_ms.toFixed(0)}ms`;
+  $('metaChunks').textContent = `📦 ${data.chunks_retrieved} chunks`;
+
+  // Confidence
+  const conf = Math.round((data.confidence_score || 0) * 100);
+  $('confBar').style.width = conf + '%';
+  $('confLabel').textContent = conf + '%';
+
+  // Answer
+  $('answerText').textContent = data.answer;
+
+  // Sources
+  const sg = $('sourcesGrid');
+  sg.innerHTML = '';
+  if (data.sources && data.sources.length) {
+    $('sourcesSection').style.display = 'block';
+    data.sources.forEach((s, i) => {
+      const card = document.createElement('div');
+      card.className = 'source-card';
+      card.innerHTML = `
+        <div class="source-title">[${i+1}] ${esc(s.title)}</div>
+        <div class="source-score">relevance: ${(s.score * 100).toFixed(1)}%</div>
+        <div class="source-excerpt">${esc(s.excerpt)}</div>
+      `;
+      sg.appendChild(card);
+    });
+  } else {
+    $('sourcesSection').style.display = 'none';
+  }
+
+  // Follow-ups
+  const fl = $('followupList');
+  fl.innerHTML = '';
+  if (data.follow_up_questions && data.follow_up_questions.length) {
+    $('followupsSection').style.display = 'block';
+    data.follow_up_questions.forEach(q => {
+      const item = document.createElement('div');
+      item.className = 'followup-item';
+      item.innerHTML = `<span class="followup-arrow">›</span> ${esc(q)}`;
+      item.onclick = () => { $('queryInput').value = q; submitQuery(); };
+      fl.appendChild(item);
+    });
+  } else {
+    $('followupsSection').style.display = 'none';
+  }
+
+  panel.classList.add('visible');
+}
+
+function clearQuery() {
+  $('queryInput').value = '';
+  $('answer-panel').classList.remove('visible');
+  lastQueryId = null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Feedback
+// ═══════════════════════════════════════════════════════════════════════════
+async function sendFeedback(helpful) {
+  if (!lastQueryId) return;
+  try {
+    await fetch(`${apiBase()}/api/v1/query/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query_id: lastQueryId, rating: helpful ? 5 : 2, helpful }),
+    });
+    $('feedbackSent').textContent = helpful ? '✓ Thanks for the feedback!' : '✓ Noted — we\'ll improve.';
+  } catch {}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Documents
+// ═══════════════════════════════════════════════════════════════════════════
+async function loadDocuments() {
+  try {
+    const r = await fetch(`${apiBase()}/api/v1/documents/?page_size=50`);
+    const data = await r.json();
+    renderDocList(data.items || []);
+  } catch(e) {
+    $('docList').innerHTML = `<div style="color:var(--red);font-size:13px">Failed to load: ${e.message}</div>`;
+  }
+}
+
+function renderDocList(docs) {
+  const el = $('docList');
+  if (!docs.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px">No documents indexed yet.</div>';
+    return;
+  }
+  el.innerHTML = docs.map(d => `
+    <div class="doc-item">
+      <div class="doc-icon">📄</div>
+      <div class="doc-info">
+        <div class="doc-name">${esc(d.title)}</div>
+        <div class="doc-meta">${d.chunk_count} chunks · ${d.metadata?.department || 'Unknown dept'} · ${fmtDate(d.created_at)}</div>
+      </div>
+      <div class="doc-badge badge-${d.status}">${d.status}</div>
+      <button class="btn btn-danger" onclick="deleteDocument('${d.id}')">✕</button>
+    </div>
+  `).join('');
+}
+
+async function ingestDocument() {
+  const title = $('docTitle').value.trim();
+  const content = $('docContent').value.trim();
+  if (!title || !content) { toast('Title and content are required', 'error'); return; }
+
+  const tags = $('docTags').value.split(',').map(t => t.trim()).filter(Boolean);
+  const payload = {
+    title,
+    content,
+    metadata: {
+      author: $('docAuthor').value.trim() || null,
+      department: $('docDepartment').value.trim() || null,
+      tags,
+    },
+  };
+
+  try {
+    const r = await fetch(`${apiBase()}/api/v1/documents/ingest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    toast(`Indexed "${title}" — ${data.chunk_count} chunks`, 'success');
+    $('docTitle').value = '';
+    $('docContent').value = '';
+    $('docAuthor').value = '';
+    $('docDepartment').value = '';
+    $('docTags').value = '';
+    loadDocuments();
+  } catch(e) {
+    toast(`Ingest failed: ${e.message}`, 'error');
+  }
+}
+
+async function deleteDocument(id) {
+  if (!confirm('Delete this document and all its embeddings?')) return;
+  try {
+    const r = await fetch(`${apiBase()}/api/v1/documents/${id}`, { method: 'DELETE' });
+    if (r.status === 204) { toast('Document deleted', 'info'); loadDocuments(); }
+    else throw new Error(`HTTP ${r.status}`);
+  } catch(e) { toast(`Delete failed: ${e.message}`, 'error'); }
+}
+
+// File upload via drop zone
+const dropZone = $('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+$('file-input').addEventListener('change', e => handleFile(e.target.files[0]));
+
+async function handleFile(file) {
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('title', file.name.replace(/\.[^.]+$/, ''));
+  try {
+    const r = await fetch(`${apiBase()}/api/v1/documents/upload`, { method: 'POST', body: formData });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    toast(`Uploaded "${file.name}" — ${data.chunk_count} chunks`, 'success');
+    loadDocuments();
+  } catch(e) { toast(`Upload failed: ${e.message}`, 'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Sessions history
+// ═══════════════════════════════════════════════════════════════════════════
+async function renderHistory() {
+  const el = $('historyContainer');
+  if (!currentSessionId) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px">No active session.</div>';
+    return;
+  }
+  try {
+    const r = await fetch(`${apiBase()}/api/v1/sessions/${currentSessionId}`);
+    if (!r.ok) throw new Error();
+    const turns = await r.json();
+    if (!turns.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px">No turns yet in this session.</div>';
+      return;
+    }
+    el.innerHTML = `<div class="history-list">${turns.map(t => `
+      <div class="history-turn ${t.role}">
+        <div class="bubble">
+          <div class="bubble-role">${t.role}</div>
+          ${esc(t.content)}
+        </div>
+      </div>
+    `).join('')}</div>`;
+  } catch {
+    el.innerHTML = '<div style="color:var(--red);font-size:13px">Failed to load history.</div>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Diagnostics
+// ═══════════════════════════════════════════════════════════════════════════
+async function loadDiagnostics() {
+  try {
+    const [readyR, configR, feedbackR] = await Promise.all([
+      fetch(`${apiBase()}/api/v1/health/ready`),
+      fetch(`${apiBase()}/api/v1/health/config`),
+      fetch(`${apiBase()}/api/v1/query/feedback/stats`),
+    ]);
+    const ready   = await readyR.json();
+    const config  = await configR.json();
+    const fbStats = await feedbackR.json();
+
+    $('dChunks').textContent = ready.vector_store?.total_chunks ?? '—';
+    $('dProvider').textContent = (config.llm_provider || '—').toUpperCase();
+    $('dRating').textContent = fbStats.avg_rating ?? '—';
+    $('dHelpful').textContent = fbStats.helpful_pct != null ? fbStats.helpful_pct + '%' : '—';
+    $('configPre').textContent = JSON.stringify(config, null, 2);
+    $('vsPre').textContent = JSON.stringify(ready.vector_store || {}, null, 2);
+  } catch(e) {
+    $('configPre').textContent = `Error: ${e.message}`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Toast notifications
+// ═══════════════════════════════════════════════════════════════════════════
+function toast(msg, type = 'info') {
+  const icons = { success: '✓', error: '✕', info: 'ℹ' };
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.innerHTML = `<span>${icons[type]}</span> ${esc(msg)}`;
+  $('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Helpers
+// ═══════════════════════════════════════════════════════════════════════════
+function esc(str) {
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function fmtDate(iso) {
+  try { return new Date(iso).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); }
+  catch { return iso; }
+}
+</script>
+</body>
+</html>

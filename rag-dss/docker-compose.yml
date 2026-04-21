@@ -1,0 +1,91 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  RAG Decision Support System — local development stack
+#
+#  Services:
+#    api        FastAPI app (hot-reload in dev profile)
+#    chromadb   ChromaDB server (optional; default is embedded mode)
+#
+#  Usage:
+#    # Embedded ChromaDB (recommended for quick start):
+#    docker compose up api
+#
+#    # With ChromaDB server:
+#    docker compose --profile server up
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  # ── FastAPI Application ───────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: rag-dss-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/data/chroma
+      - ./app:/app/app:ro          # hot-reload source mount (dev only)
+    env_file:
+      - .env
+    environment:
+      CHROMA_PERSIST_DIR: /data/chroma
+      USE_CHROMA_SERVER: "false"   # flip to true when using the chroma service
+      ENVIRONMENT: development
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/api/v1/health').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - rag_net
+
+  # ── ChromaDB Server (optional profile) ───────────────────────────────────
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: rag-chromadb
+    profiles: ["server"]
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      CHROMA_SERVER_AUTH_CREDENTIALS_PROVIDER: ""
+      ANONYMIZED_TELEMETRY: "false"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+    networks:
+      - rag_net
+
+  # ── Development: hot-reload override ─────────────────────────────────────
+  api-dev:
+    extends:
+      service: api
+    profiles: ["dev"]
+    container_name: rag-dss-dev
+    command: >
+      uvicorn app.main:app
+        --host 0.0.0.0
+        --port 8000
+        --reload
+        --reload-dir /app/app
+        --log-level debug
+    volumes:
+      - .:/app                   # full source mount for hot-reload
+      - chroma_data:/data/chroma
+
+volumes:
+  chroma_data:
+    driver: local
+
+networks:
+  rag_net:
+    driver: bridge
